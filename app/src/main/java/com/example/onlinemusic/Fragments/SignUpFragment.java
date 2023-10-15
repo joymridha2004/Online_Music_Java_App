@@ -175,6 +175,16 @@ public class SignUpFragment extends Fragment {
                             public void onComplete(@NonNull Task<AuthResult> task) {
                                 signUpProgress.setVisibility(View.INVISIBLE);
                                 if (task.isSuccessful()) {
+                                    mAuth.getCurrentUser().sendEmailVerification().addOnCompleteListener(new OnCompleteListener<Void>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<Void> task) {
+                                            if (task.isSuccessful()) {
+                                                Toast.makeText(getContext(), "User registered successfully. Please verify your Email.", Toast.LENGTH_SHORT).show();
+                                            } else {
+                                                Toast.makeText(getContext(), task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                            }
+                                        }
+                                    });
                                     Map<String, Object> user = new HashMap<>();
                                     user.put("userName", userName.getText().toString());
                                     user.put("emailId", email.getText().toString());
@@ -184,10 +194,7 @@ public class SignUpFragment extends Fragment {
                                             .addOnCompleteListener(new OnCompleteListener<Void>() {
                                                 @Override
                                                 public void onComplete(@NonNull Task<Void> task) {
-
-                                                    Intent intent = new Intent(getActivity(), MainActivity.class);
-                                                    getActivity().startActivity(intent);
-                                                    getActivity().finish();
+                                                    setFragment(new SignInFragment());
                                                 }
                                             }).addOnFailureListener(new OnFailureListener() {
                                                 @Override
