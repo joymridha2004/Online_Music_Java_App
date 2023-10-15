@@ -25,9 +25,15 @@ import android.widget.Toast;
 import com.example.onlinemusic.Activities.MainActivity;
 import com.example.onlinemusic.R;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SignUpFragment extends Fragment {
 
@@ -42,6 +48,8 @@ public class SignUpFragment extends Fragment {
 
     private FirebaseAuth mAuth;
     private ProgressBar signUpProgress;
+
+    private FirebaseFirestore db;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -61,6 +69,8 @@ public class SignUpFragment extends Fragment {
         mAuth = FirebaseAuth.getInstance();
 
         signUpProgress = view.findViewById(R.id.signUpProgress);
+
+        db = FirebaseFirestore.getInstance();
         return view;
     }
 
@@ -68,7 +78,7 @@ public class SignUpFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        errorIcon.setBounds(0,0,errorIcon.getIntrinsicWidth(),errorIcon.getIntrinsicHeight());
+        errorIcon.setBounds(0, 0, errorIcon.getIntrinsicWidth(), errorIcon.getIntrinsicHeight());
 
         alreadyHaveAnAccount.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -165,9 +175,28 @@ public class SignUpFragment extends Fragment {
                             public void onComplete(@NonNull Task<AuthResult> task) {
                                 signUpProgress.setVisibility(View.INVISIBLE);
                                 if (task.isSuccessful()) {
-                                    Intent intent = new Intent(getActivity(), MainActivity.class);
-                                    getActivity().startActivity(intent);
-                                    getActivity().finish();
+                                    Map<String, Object> user = new HashMap<>();
+                                    user.put("userName", userName.getText().toString());
+                                    user.put("emailId", email.getText().toString());
+                                    db.collection("users")
+                                            .document(task.getResult().getUser().getUid())
+                                            .set(user)
+                                            .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                @Override
+                                                public void onComplete(@NonNull Task<Void> task) {
+
+                                                    Intent intent = new Intent(getActivity(), MainActivity.class);
+                                                    getActivity().startActivity(intent);
+                                                    getActivity().finish();
+                                                }
+                                            }).addOnFailureListener(new OnFailureListener() {
+                                                @Override
+                                                public void onFailure(@NonNull Exception e) {
+                                                    Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                                                    signUpButton.setEnabled(true);
+                                                    signUpButton.setTextColor(getResources().getColor(R.color.white));
+                                                }
+                                            });
                                 } else {
                                     Toast.makeText(getContext(), task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                                     signUpButton.setEnabled(true);
@@ -177,12 +206,12 @@ public class SignUpFragment extends Fragment {
                         });
 
             } else {
-                confirmPassword.setError("Password Mismatch!",errorIcon);
+                confirmPassword.setError("Password Mismatch!", errorIcon);
                 signUpButton.setEnabled(true);
                 signUpButton.setTextColor(getResources().getColor(R.color.white));
             }
         } else {
-            email.setError("Invalid Email Pattern!",errorIcon);
+            email.setError("Invalid Email Pattern!", errorIcon);
             signUpButton.setEnabled(true);
             signUpButton.setTextColor(getResources().getColor(R.color.white));
         }
